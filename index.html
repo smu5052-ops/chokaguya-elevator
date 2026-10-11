@@ -37,8 +37,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidd
 #cap{margin:0;max-width:34rem;text-align:center;font-family:var(--serif);font-size:clamp(1.05rem,2.6vw,1.35rem);line-height:1.6;color:var(--ink);text-shadow:0 1px 14px #000,0 0 3px #000;opacity:0;transition:opacity .8s;text-wrap:balance;min-height:3.2em}
 #cap.show{opacity:1}
 #start:focus-visible,#snd:focus-visible{outline:2px solid var(--lamp);outline-offset:3px}
-#fs{position:fixed;top:calc(.9rem + env(safe-area-inset-top,0px));left:1rem;z-index:5;font-family:var(--sans);font-size:.8rem;color:var(--dim);background:rgba(23,21,19,.7);border:1px solid var(--line);border-radius:999px;padding:.4rem .9rem;cursor:pointer}
-#fs[hidden]{display:none}
+#tl{position:fixed;top:calc(.9rem + env(safe-area-inset-top,0px));left:1rem;z-index:5;display:flex;gap:.4rem}
+#tl button{font-family:var(--sans);font-size:.8rem;color:var(--dim);background:rgba(23,21,19,.7);border:1px solid var(--line);border-radius:999px;padding:.4rem .9rem;cursor:pointer}
+#tl button[hidden]{display:none}
 #snd{position:fixed;top:calc(.9rem + env(safe-area-inset-top,0px));right:1rem;z-index:5;font-family:var(--sans);font-size:.8rem;color:var(--dim);background:rgba(23,21,19,.7);border:1px solid var(--line);border-radius:999px;padding:.4rem .9rem;cursor:pointer}
 #intro{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:1rem;background:#0a0908;transition:opacity 1.1s .5s;overflow:hidden}
 #intro.gone{opacity:0;pointer-events:none}
@@ -71,6 +72,21 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidd
 @media (hover:none) and (pointer:coarse){#joy.show{display:block}}
 #wrap{position:fixed;inset:0;transform:translateZ(0);overflow:hidden}
 body.wide{background:#000}
+@media (max-height:480px){
+  #tl{top:.35rem;left:.5rem;gap:.3rem}
+  #tl button,#snd{font-size:.68rem;padding:.22rem .6rem}
+  #snd{top:.35rem;right:.5rem}
+  #intro{padding:.5rem}
+  .card{max-width:40rem;display:grid;grid-template-columns:auto 1fr;column-gap:1.4rem;row-gap:.5rem;align-content:center;align-items:center}
+  .card .logo{grid-row:1 / span 3;grid-column:1;max-height:84vh;max-width:38vw}
+  .card h1{grid-column:2;font-size:clamp(1.3rem,4vw,1.9rem);white-space:nowrap}
+  .menu{grid-column:2;margin-top:0}
+  #how{grid-column:2}
+  .slot{width:2.8rem;height:2.8rem}
+  .slot img{width:2rem;height:2rem}
+  #inv{bottom:.5rem}
+  #joy{bottom:66px;width:116px;height:116px}
+}
 @media (prefers-reduced-motion:reduce){#cap,#intro{transition:none}}
 </style>
 
@@ -82,7 +98,7 @@ body.wide{background:#000}
 <div id="hud" hidden>
 </div>
 
-<button id="fs" type="button" hidden>전체화면</button>
+<div id="tl"><button id="fsn" type="button" hidden>전체화면</button><button id="fs" type="button" hidden>전체화면</button></div>
 <button id="snd" type="button" aria-pressed="true">소리 켜짐</button>
 <div id="pickprompt"></div>
 <div id="pianobadge" hidden></div>
@@ -2576,6 +2592,15 @@ $('start').addEventListener('click', () => {
     }
     resize();
   };
+  const fsn = $('fsn');
+  if (coarse && canFs) {
+    fsn.hidden = false;
+    fsn.addEventListener('click', () => {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      else de.requestFullscreen().then(() => { try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (e) {} }).catch(() => {});
+    });
+    document.addEventListener('fullscreenchange', () => { fsn.textContent = document.fullscreenElement ? '전체화면 해제' : '전체화면'; });
+  }
   if (coarse) {
     // Phones and tablets: 16:9 letterboxed full screen (landscape lock where the browser allows it).
     fsb.hidden = false;
