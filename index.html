@@ -66,17 +66,18 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidd
 #how.show{display:block}
 #start{font-family:var(--sans);font-weight:600;font-size:1rem;letter-spacing:.08em;color:#1a150d;background:var(--lamp);border:0;border-radius:999px;padding:.85rem 2.4rem;cursor:pointer}
 #start:hover{background:#f3dba7}
-#dpad{display:none;position:fixed;left:18px;bottom:22px;width:156px;height:156px;z-index:30;touch-action:none;user-select:none;-webkit-user-select:none}
-#dpad button{position:absolute;width:52px;height:52px;border-radius:14px;border:1px solid rgba(255,255,255,.35);background:rgba(20,20,26,.55);color:#fff;font-size:20px;padding:0;touch-action:none;-webkit-tap-highlight-color:transparent}
-#dpad button.on{background:rgba(243,219,167,.75);color:#222}
-#dpad [data-k=KeyW]{left:52px;top:0}#dpad [data-k=KeyS]{left:52px;top:104px}#dpad [data-k=KeyA]{left:0;top:52px}#dpad [data-k=KeyD]{left:104px;top:52px}
-@media (hover:none) and (pointer:coarse){#dpad.show{display:block}}
+#joy{display:none;position:fixed;left:22px;bottom:92px;width:140px;height:140px;border-radius:50%;z-index:30;touch-action:none;user-select:none;-webkit-user-select:none;background:radial-gradient(circle,rgba(20,20,26,.35),rgba(20,20,26,.55));border:2px solid rgba(255,255,255,.3)}
+#joyknob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(243,219,167,.72);border:1px solid rgba(255,255,255,.55);pointer-events:none;will-change:transform}
+@media (hover:none) and (pointer:coarse){#joy.show{display:block}}
+#wrap{position:fixed;inset:0;transform:translateZ(0);overflow:hidden}
+body.wide{background:#000}
 @media (prefers-reduced-motion:reduce){#cap,#intro{transition:none}}
 </style>
 
+<div id="wrap">
 <div id="stage"></div>
 <div id="fade"></div>
-<div id="dpad"><button data-k="KeyW">▲</button><button data-k="KeyA">◀</button><button data-k="KeyD">▶</button><button data-k="KeyS">▼</button></div>
+<div id="joy"><div id="joyknob"></div></div>
 
 <div id="hud" hidden>
 </div>
@@ -100,6 +101,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidd
   </div>
 </div>
 
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (() => {
@@ -119,8 +122,14 @@ scene.background = new THREE.Color(0x050505);
 scene.fog = new THREE.Fog(0x050505, 5, 16);
 const camera = new THREE.PerspectiveCamera(70, 1, 0.05, 120);
 camera.rotation.order = 'YXZ';
+const wrapEl = $('wrap');
 function resize() {
-  const w = window.innerWidth, h = window.innerHeight;
+  const iw = window.innerWidth, ih = window.innerHeight;
+  let w = iw, h = ih;
+  if (document.body.classList.contains('wide')) {
+    w = Math.min(iw, ih * 16 / 9); h = w * 9 / 16;
+    Object.assign(wrapEl.style, { left: ((iw - w) / 2) + 'px', top: ((ih - h) / 2) + 'px', width: w + 'px', height: h + 'px', right: 'auto', bottom: 'auto' });
+  } else wrapEl.style.cssText = '';
   renderer.setSize(w, h);
   camera.aspect = w / h;
   camera.fov = w < h ? 82 : 70;
@@ -2241,11 +2250,11 @@ function updateVM(dt, time) {
 }
 renderInv();
 const ray = new THREE.Raycaster(), ctr = new THREE.Vector2(0, 0);
-let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
-function setMouse(e) { mouseX = e.clientX; mouseY = e.clientY; }
+let mouseX = wrapEl.clientWidth / 2, mouseY = wrapEl.clientHeight / 2;
+function setMouse(e) { const r = wrapEl.getBoundingClientRect(); mouseX = e.clientX - r.left; mouseY = e.clientY - r.top; }
 function targetPick() {
   if (!pickables.length || (state !== 'open' && state !== 'opening')) return null;
-  ctr.set(mouseX / window.innerWidth * 2 - 1, -(mouseY / window.innerHeight * 2 - 1));
+  ctr.set(mouseX / wrapEl.clientWidth * 2 - 1, -(mouseY / wrapEl.clientHeight * 2 - 1));
   ray.setFromCamera(ctr, camera);
   ray.far = 2.6;
   const hits = ray.intersectObjects(pickables, true);
@@ -2433,7 +2442,7 @@ function pianoReset() {
 }
 function keyAtMouse() {
   if (!pianoKeys.length || (state !== 'open' && state !== 'opening')) return null;
-  ctr.set(mouseX / window.innerWidth * 2 - 1, -(mouseY / window.innerHeight * 2 - 1));
+  ctr.set(mouseX / wrapEl.clientWidth * 2 - 1, -(mouseY / wrapEl.clientHeight * 2 - 1));
   ray.setFromCamera(ctr, camera);
   ray.far = 4;
   const hits = ray.intersectObjects(pianoKeys, false);
@@ -2492,13 +2501,31 @@ window.addEventListener('keydown', e => {
   const dm = /^Digit([1-4])$/.exec(e.code);
   if (dm) useSlot(+dm[1] - 1);
 });
-const dpad = $('dpad');
-dpad.querySelectorAll('button').forEach(b => {
-  const k = b.dataset.k, set = v => { keys[k] = v; b.classList.toggle('on', v); };
-  b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); try { b.setPointerCapture(e.pointerId); } catch (_) {} set(true); });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => b.addEventListener(t, () => set(false)));
-  b.addEventListener('contextmenu', e => e.preventDefault());
-});
+const joy = { x: 0, y: 0 };
+{
+  const el = $('joy'), knob = $('joyknob');
+  let pid = null;
+  const R = 41;
+  const move = e => {
+    const r = el.getBoundingClientRect();
+    let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    const d = Math.hypot(dx, dy);
+    if (d > R) { dx = dx / d * R; dy = dy / d * R; }
+    knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+    const nx = dx / R, ny = dy / R;
+    joy.x = Math.hypot(nx, ny) < 0.15 ? 0 : nx;
+    joy.y = Math.hypot(nx, ny) < 0.15 ? 0 : ny;
+  };
+  const end = e => {
+    if (pid === null || (e && e.pointerId !== pid)) return;
+    pid = null; joy.x = 0; joy.y = 0;
+    knob.style.transform = '';
+  };
+  el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); pid = e.pointerId; try { el.setPointerCapture(pid); } catch (_) {} move(e); });
+  el.addEventListener('pointermove', e => { if (e.pointerId === pid) move(e); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => el.addEventListener(t, end));
+  el.addEventListener('contextmenu', e => e.preventDefault());
+}
 window.addEventListener('keyup', e => {
   keys[e.code] = false;
   const hk = heldByCode[e.code];
@@ -2518,7 +2545,7 @@ $('start').addEventListener('click', () => {
     if (pp && pp.then) pp.then(() => { v.pause(); v.currentTime = 0; }).catch(() => {});
   });
   $('intro').classList.add('gone');
-  dpad.classList.add('show');
+  $('joy').classList.add('show');
   invEl.hidden = false;
   hud.hidden = false;
   // boarding: the cabin stays shut for a 20 second cool-down before the first door opening
@@ -2530,7 +2557,34 @@ $('start').addEventListener('click', () => {
 });
 {
   const fsb = $('fs'), de = document.documentElement;
-  if (document.fullscreenEnabled && de.requestFullscreen) {
+  const coarse = window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches;
+  const canFs = !!(document.fullscreenEnabled && de.requestFullscreen);
+  let enteredFs = false;
+  const unlock = () => { try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {} };
+  const setWide = on => {
+    document.body.classList.toggle('wide', on);
+    fsb.textContent = on ? '전체화면 해제' : '16:9 전체화면';
+    if (on) {
+      if (canFs) de.requestFullscreen().then(() => {
+        enteredFs = true;
+        try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (e) {}
+      }).catch(() => {});
+    } else {
+      enteredFs = false;
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      unlock();
+    }
+    resize();
+  };
+  if (coarse) {
+    // Phones and tablets: 16:9 letterboxed full screen (landscape lock where the browser allows it).
+    fsb.hidden = false;
+    fsb.textContent = '16:9 전체화면';
+    fsb.addEventListener('click', () => setWide(!document.body.classList.contains('wide')));
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && enteredFs && document.body.classList.contains('wide')) setWide(false);
+    });
+  } else if (canFs) {
     fsb.hidden = false;
     fsb.addEventListener('click', () => {
       if (document.fullscreenElement) document.exitFullscreen(); else de.requestFullscreen().catch(() => {});
@@ -2566,8 +2620,10 @@ function update(dt, time) {
   if (keys.KeyS) mz += 1;
   if (keys.KeyA) mx -= 1;
   if (keys.KeyD) mx += 1;
+  let mag = 1;
+  if (joy.x || joy.y) { mx = joy.x; mz = joy.y; mag = Math.min(1, Math.hypot(mx, mz)); }
   if (mx || mz) {
-    const len = Math.hypot(mx, mz), sp = 1.7 * dt / len;
+    const len = Math.hypot(mx, mz), sp = 1.7 * dt * mag / len;
     const c = Math.cos(yaw), sn = Math.sin(yaw);
     const nx = px + (mx * c + mz * sn) * sp, nz = pz + (-mx * sn + mz * c) * sp;
     if (canWalk(nx, pz)) px = nx;
