@@ -67,8 +67,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidd
 #how.show{display:block}
 #start{font-family:var(--sans);font-weight:600;font-size:1rem;letter-spacing:.08em;color:#1a150d;background:var(--lamp);border:0;border-radius:999px;padding:.85rem 2.4rem;cursor:pointer}
 #start:hover{background:#f3dba7}
-#joy{display:none;position:fixed;left:22px;bottom:92px;width:140px;height:140px;border-radius:50%;z-index:30;touch-action:none;user-select:none;-webkit-user-select:none;background:radial-gradient(circle,rgba(20,20,26,.35),rgba(20,20,26,.55));border:2px solid rgba(255,255,255,.3)}
-#joyknob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(243,219,167,.72);border:1px solid rgba(255,255,255,.55);pointer-events:none;will-change:transform}
+#joy{display:none;position:fixed;left:22px;bottom:96px;width:200px;height:200px;border-radius:50%;z-index:30;touch-action:none;user-select:none;-webkit-user-select:none;background:radial-gradient(circle,rgba(20,20,26,.35),rgba(20,20,26,.55));border:2px solid rgba(255,255,255,.3)}
+#joyknob{position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;background:rgba(243,219,167,.72);border:1px solid rgba(255,255,255,.55);pointer-events:none;will-change:transform}
 @media (hover:none) and (pointer:coarse){#joy.show{display:block}}
 #wrap{position:fixed;inset:0;transform:translateZ(0);overflow:hidden}
 body.wide{background:#000}
@@ -85,7 +85,8 @@ body.wide{background:#000}
   .slot{width:2.8rem;height:2.8rem}
   .slot img{width:2rem;height:2rem}
   #inv{bottom:.5rem}
-  #joy{bottom:66px;width:116px;height:116px}
+  #joy{bottom:66px;width:168px;height:168px}
+  #joyknob{width:70px;height:70px;margin:-35px 0 0 -35px}
 }
 @media (prefers-reduced-motion:reduce){#cap,#intro{transition:none}}
 </style>
@@ -2521,8 +2522,8 @@ const joy = { x: 0, y: 0 };
 {
   const el = $('joy'), knob = $('joyknob');
   let pid = null;
-  const R = 41;
   const move = e => {
+    const R = (el.offsetWidth - knob.offsetWidth) / 2;
     const r = el.getBoundingClientRect();
     let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
     const d = Math.hypot(dx, dy);
