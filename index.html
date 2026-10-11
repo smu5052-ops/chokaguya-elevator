@@ -883,7 +883,7 @@ const EVENTS = [
       };
   } },
 
-  { id: 'theater', time: 40, run(g) {
+  { id: 'theater', time: 41, run(g) {
       env({ bg: 0x020203, fog: [0x020203, 7, 34], a: [0xffa070, 0], b: [0xffffff, 0] });
       outA.position.set(0, 3.4, -6); outB.position.set(0, 3, -13);
       outA.distance = 24; outB.distance = 24;
@@ -974,8 +974,10 @@ const EVENTS = [
             outA.intensity = 1.2; outB.intensity = 2;
           }
           if (started && !ended) {
+            holdClose(vid);
             const over = vid.ended || t > START + (vid.duration || 30.4) + 1.5;
             if (over) {
+              if (evt) evt.closeAt = evtT + CLOSE_GAP;
               ended = true;
               smat.map = null;
               smat.color.set(0x060607);
@@ -1019,7 +1021,7 @@ const EVENTS = [
       // randomly pick which of the two concert videos plays this time
       const useNew = Math.random() < 0.5;
       const cdef = EVENTS.find(e => e.id === 'concert');
-      cdef.time = useNew ? 47 : 43;
+      cdef.time = useNew ? 49 : 44;
       const wantSrc = useNew ? 'theater-assets/concert2.mp4' : 'theater-assets/concert.mp4';
       if (!vid3.src.endsWith(wantSrc)) { vid3.src = wantSrc; vid3.load(); }
       env({ bg: 0x02030a, fog: [0x02030a, 45, 120], a: [0x8fd8ff, 0.25], b: [0x7a60ff, 0.25] });
@@ -1150,8 +1152,10 @@ const EVENTS = [
           }
           if (started && !ended) {
             f = Math.min(1, f + dt / 1.0);
+            holdClose(vid3);
             const over = vid3.ended || t > START + (vid3.duration || 33) + 1.5;
             if (over) {
+              if (evt) evt.closeAt = evtT + CLOSE_GAP;
               ended = true;
               smat.map = null;
               smat.color.set(0x05060a);
@@ -1406,8 +1410,10 @@ const EVENTS = [
           }
           if (started && !ended) {
             f = Math.min(1, f + dt / 1.2);
+            holdClose(vid4);
             const over = vid4.ended || t > START + (vid4.duration || 61) + 1.5;
             if (over) {
+              if (evt) evt.closeAt = evtT + CLOSE_GAP;
               ended = true;
               smat.map = null;
               smat.color.set(0x05060a);
@@ -1460,7 +1466,7 @@ const EVENTS = [
       };
   } },
 
-  { id: 'beam', time: 42, run(g) {
+  { id: 'beam', time: 43, run(g) {
       env({ bg: 0x08120f, fog: [0x08120f, 4, 28], a: [0xa8d8c0, 0.75], b: [0xa8c8e8, 0.6] });
       outA.position.set(0, 3.5, -4); outB.position.set(0, 3.5, -9);
       outA.distance = 22; outB.distance = 22;
@@ -1596,8 +1602,10 @@ const EVENTS = [
           }
           if (started && !ended) {
             f = Math.min(1, f + dt / 1.2);
+            holdClose(vid2);
             const over = vid2.ended || t > START + (vid2.duration || 32.2) + 1.5;
             if (over) {
+              if (evt) evt.closeAt = evtT + CLOSE_GAP;
               ended = true;
               say('빛이 꺼졌다. 대나무가 바람에 흔들린다.');
             } else {
@@ -2259,7 +2267,12 @@ function tryPick() {
 /* ---------- state machine ---------- */
 const hud = $('hud');
 const EVENT_TIME = 30, WAIT_TIME = 20;
-const evtDur = () => (evt && evt.def.time) || EVENT_TIME;
+// Video events: the doors close 4 seconds after the video finishes.
+const CLOSE_GAP = 4;
+function holdClose(v) {
+  if (evt && v.duration) evt.closeAt = evtT + Math.max(0, v.duration - v.currentTime) + CLOSE_GAP;
+}
+const evtDur = () => (evt && ((evt.closeAt !== undefined ? evt.closeAt : evt.def.time) || EVENT_TIME)) || EVENT_TIME;
 let px = 0, pz = 0.35;
 const CORR = [[-1.9, 1.9, -10.9, -1.12]];
 const WALK = {
